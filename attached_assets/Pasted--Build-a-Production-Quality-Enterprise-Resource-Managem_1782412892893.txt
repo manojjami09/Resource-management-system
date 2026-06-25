@@ -1,0 +1,579 @@
+# Build a Production-Quality Enterprise Resource Management System (RMS) – Frontend Only
+
+Build a **premium SaaS-quality React application** for a **Resource Management System (RMS)** used by IT consulting companies (similar to TCS, Infosys, Accenture, Deloitte, Cognizant, Capgemini).
+
+**IMPORTANT**
+
+* Frontend only.
+* Do NOT build any backend.
+* Do NOT use Firebase.
+* Do NOT use Supabase.
+* Do NOT use any database.
+* Do NOT use authentication libraries.
+* Everything must use **mock API services** and local state.
+* I will later connect this UI to my own Java Spring Boot REST API without changing the components.
+
+---
+
+# Tech Stack
+
+* React + Vite
+* Tailwind CSS
+* React Router
+* Recharts
+* Lucide React
+* Framer Motion (smooth animations)
+* React Hook Form (UI only)
+* TanStack Table
+* shadcn/ui components
+* Inter font
+
+Architecture must be scalable and production ready.
+
+```
+src/
+    components/
+    pages/
+    layouts/
+    services/
+    hooks/
+    data/
+    utils/
+    types/
+    constants/
+```
+
+---
+
+# Design Language
+
+Create a premium SaaS dashboard.
+
+Inspired by
+
+* Linear
+* Notion
+* Vercel
+* Stripe Dashboard
+* Clerk
+* Raycast
+* Atlassian
+
+Requirements
+
+* Lots of whitespace
+* Rounded cards
+* Glassmorphism only where appropriate
+* Soft shadows
+* Smooth hover animations
+* Animated page transitions
+* Skeleton loading
+* Empty states
+* Beautiful tables
+* Responsive on every screen
+* Sticky sidebar
+* Sticky table headers
+* Command palette (Ctrl + K UI)
+* Toast notifications (UI only)
+* Professional color palette
+
+Light mode only.
+
+Accent color:
+Indigo (#6366F1)
+
+---
+
+# Mock API Layer
+
+Never import mock data directly into components.
+
+Instead use
+
+```
+services/
+
+employeeService.js
+projectService.js
+allocationService.js
+dashboardService.js
+reportService.js
+analyticsService.js
+```
+
+Example
+
+```
+export async function getEmployees(){
+   return employees;
+}
+```
+
+Pretend every function is a REST API.
+
+Later I should only replace
+
+```
+return employees
+```
+
+with
+
+```
+return fetch(...)
+```
+
+without touching UI components.
+
+---
+
+# Mock Data
+
+Create realistic enterprise datasets.
+
+Employees (120)
+
+Projects (35)
+
+Allocations
+
+Bench Resources
+
+Skills
+
+Departments
+
+Managers
+
+Utilization History
+
+Monthly Reports
+
+Notifications
+
+AI Insights
+
+Every object should look exactly like a real backend response.
+
+Example
+
+```
+{
+ id,
+ employeeId,
+ employeeName,
+ designation,
+ manager,
+ department,
+ experience,
+ location,
+ skills:[],
+ certifications:[],
+ utilization,
+ status,
+ joiningDate,
+ availabilityDate
+}
+```
+
+---
+
+# Pages
+
+## Login
+
+Modern login screen
+
+Split layout
+
+Illustration
+
+Glass login card
+
+Forgot Password
+
+Remember Me
+
+UI only
+
+---
+
+## Dashboard
+
+Animated KPI cards
+
+Total Employees
+
+Bench %
+
+Active Projects
+
+Average Utilization
+
+Revenue Placeholder
+
+Open Requests
+
+Charts
+
+Utilization Trend
+
+Capacity vs Demand
+
+Bench Trend
+
+Department Utilization
+
+Project Status
+
+Recent Activity
+
+Upcoming Roll-offs
+
+AI Manager Insights
+
+Display AI generated recommendations
+
+Example
+
+"React developers are critically low for Project Atlas."
+
+"Backend utilization exceeds 94%."
+
+"Bench decreased 12%."
+
+---
+
+## Employees
+
+Enterprise table
+
+Features
+
+Search
+
+Pagination
+
+Sorting
+
+Column visibility
+
+Filters
+
+Status chips
+
+Skill chips
+
+Designation filters
+
+Department filters
+
+Utilization filter
+
+Availability filter
+
+Click row
+
+Open sliding side panel
+
+Employee Profile
+
+Avatar
+
+Skills
+
+Projects
+
+Timeline
+
+Allocations
+
+Experience
+
+Manager
+
+Utilization Gauge
+
+Availability
+
+Recent Activity
+
+---
+
+## Projects
+
+Professional table
+
+Cards
+
+Status
+
+Client
+
+Timeline
+
+Health indicator
+
+Budget placeholder
+
+Required Skills
+
+Manager
+
+Open project
+
+Right side drawer
+
+Project Details
+
+Assigned Team
+
+Vacant Positions
+
+Completion %
+
+Resource Demand
+
+Risk
+
+Timeline
+
+Milestones
+
+---
+
+## Smart Allocation
+
+This page should look like an AI recommendation engine.
+
+Pending Requests
+
+Required Skills
+
+Experience Needed
+
+Project Priority
+
+Suggested Employees
+
+Each candidate shows
+
+Avatar
+
+Match %
+
+Availability
+
+Experience
+
+Current Utilization
+
+Skill Match
+
+Reason
+
+Example
+
+95%
+
+Excellent React experience.
+
+Available in 5 days.
+
+Worked with same client before.
+
+Buttons
+
+Confirm Allocation
+
+Reject
+
+View Profile
+
+Ranking should look AI powered.
+
+---
+
+## Skill Gap Analytics
+
+Professional analytics dashboard.
+
+Charts
+
+Required vs Available
+
+Top Missing Skills
+
+Department Heatmap
+
+Demand Forecast
+
+Skill Distribution
+
+Severity Ranking
+
+Critical skills highlighted.
+
+---
+
+## Reports
+
+Executive reporting page
+
+Cards
+
+Monthly Utilization
+
+Project Summary
+
+Bench Report
+
+Forecast Report
+
+Buttons
+
+Export Excel
+
+Export PDF
+
+Schedule Report
+
+(UI only)
+
+---
+
+## Notifications
+
+Modern notification center
+
+Upcoming Roll-offs
+
+Bench Alerts
+
+Skill Alerts
+
+Resource Requests
+
+Project Delays
+
+---
+
+## Settings
+
+Organization
+
+Theme
+
+Roles
+
+Permissions
+
+API Placeholder
+
+Profile
+
+All UI only.
+
+---
+
+# Components
+
+Reusable
+
+DataTable
+
+Search Bar
+
+Filter Drawer
+
+Status Badge
+
+Skill Badge
+
+Metric Card
+
+Chart Card
+
+Stat Widget
+
+Timeline
+
+Drawer
+
+Modal
+
+Confirmation Dialog
+
+Avatar Group
+
+Progress Ring
+
+Skeleton
+
+Pagination
+
+Breadcrumb
+
+---
+
+# Animations
+
+Framer Motion everywhere.
+
+Page transitions
+
+Card entrance
+
+Chart animation
+
+Drawer animation
+
+Hover lift
+
+Button ripple
+
+Sidebar collapse
+
+Smooth loading
+
+Professional micro-interactions.
+
+---
+
+# Responsiveness
+
+Desktop
+
+Laptop
+
+Tablet
+
+Mobile
+
+Perfect responsive behavior.
+
+---
+
+# Code Quality
+
+Reusable components only.
+
+No duplicated UI.
+
+Clean folder structure.
+
+Custom hooks.
+
+Production-level naming.
+
+Well-commented.
+
+Easy to connect to a Spring Boot backend later.
+
+---
+
+# Final Goal
+
+The application should look like a real enterprise SaaS product that could be demonstrated in an interview at Google, Amazon, Microsoft, Atlassian, Salesforce, Uber, Stripe, or any FAANG-level company.
+
+The UI should be polished enough that someone viewing screenshots would assume it is a commercial product rather than a student project.

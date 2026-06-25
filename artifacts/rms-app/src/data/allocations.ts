@@ -1,0 +1,86 @@
+import { Allocation, AllocationRequest } from "../types";
+
+export const allocations: Allocation[] = [
+  { id: "alloc-001", employeeId: "emp-001", employeeName: "Arjun Kumar", projectId: "prj-001", projectName: "Project Atlas", startDate: "2025-01-15", endDate: "2025-07-15", allocationPercent: 100, role: "React Lead", status: "active", billable: true },
+  { id: "alloc-002", employeeId: "emp-002", employeeName: "Priya Sharma", projectId: "prj-002", projectName: "Operation Nexus", startDate: "2025-02-01", endDate: "2025-10-31", allocationPercent: 100, role: "Data Engineer", status: "active", billable: true },
+  { id: "alloc-003", employeeId: "emp-003", employeeName: "Ravi Reddy", projectId: "prj-003", projectName: "CloudShift Initiative", startDate: "2024-11-01", endDate: "2025-07-20", allocationPercent: 100, role: "Cloud Architect", status: "active", billable: true },
+  { id: "alloc-004", employeeId: "emp-004", employeeName: "Sneha Nair", projectId: "prj-004", projectName: "SecureBase v3", startDate: "2025-03-01", endDate: "2025-11-30", allocationPercent: 75, role: "Security Analyst", status: "active", billable: true },
+  { id: "alloc-005", employeeId: "emp-005", employeeName: "Karthik Patel", projectId: "prj-005", projectName: "DataForge Platform", startDate: "2025-01-10", endDate: "2025-07-28", allocationPercent: 100, role: "Data Scientist", status: "active", billable: true },
+  { id: "alloc-006", employeeId: "emp-006", employeeName: "Divya Singh", projectId: "prj-006", projectName: "Horizon Mobile", startDate: "2025-02-15", endDate: "2025-09-30", allocationPercent: 100, role: "React Native Developer", status: "active", billable: true },
+  { id: "alloc-007", employeeId: "emp-007", employeeName: "Arun Gupta", projectId: "prj-007", projectName: "DevPipeline Pro", startDate: "2025-04-01", endDate: "2025-08-15", allocationPercent: 100, role: "DevOps Engineer", status: "active", billable: true },
+  { id: "alloc-008", employeeId: "emp-008", employeeName: "Meera Iyer", projectId: "prj-008", projectName: "Project Phoenix", startDate: "2024-09-01", endDate: "2025-07-31", allocationPercent: 100, role: "Java Architect", status: "active", billable: true },
+  { id: "alloc-009", employeeId: "emp-009", employeeName: "Vijay Rao", projectId: "prj-010", projectName: "TradeSpark", startDate: "2025-01-20", endDate: "2025-08-01", allocationPercent: 100, role: "Backend Lead", status: "active", billable: true },
+  { id: "alloc-010", employeeId: "emp-010", employeeName: "Anitha Pillai", projectId: "prj-012", projectName: "EduNext Platform", startDate: "2025-02-01", endDate: "2025-12-31", allocationPercent: 100, role: "Full Stack Developer", status: "active", billable: true },
+  ...Array.from({ length: 100 }, (_, i) => ({
+    id: `alloc-${String(11 + i).padStart(3, "0")}`,
+    employeeId: `emp-${String(11 + (i % 110)).padStart(3, "0")}`,
+    employeeName: `Employee ${11 + i}`,
+    projectId: `prj-${String(1 + (i % 19)).padStart(3, "0")}`,
+    projectName: ["Project Atlas", "Operation Nexus", "CloudShift", "SecureBase", "DataForge", "Horizon Mobile", "DevPipeline", "Project Phoenix", "TradeSpark", "EduNext", "Project Titan", "BlueSky", "TestOps", "CyberShield", "NexGen QA", "RetailPulse", "OpsVision", "AgileOps", "Quantum Analytics"][i % 19],
+    startDate: `2025-0${1 + (i % 6)}-01`,
+    endDate: `2025-${String(7 + (i % 6)).padStart(2, "0")}-30`,
+    allocationPercent: [25, 50, 75, 100][i % 4],
+    role: ["Developer", "Senior Developer", "Tech Lead", "QA Engineer", "DevOps Engineer", "Data Engineer", "Cloud Engineer", "Solution Architect"][i % 8],
+    status: (["active", "active", "active", "upcoming", "completed"] as Allocation["status"][])[i % 5],
+    billable: i % 8 !== 0,
+  })),
+];
+
+export const allocationRequests: AllocationRequest[] = [
+  {
+    id: "req-001", projectId: "prj-009", projectName: "Quantum Analytics", client: "HSBC",
+    requiredSkills: ["Python", "Apache Spark", "Databricks", "SQL"], experienceNeeded: 5,
+    priority: "high", requestDate: "2025-06-20", startDate: "2025-08-01",
+    role: "Senior Data Engineer",
+    description: "Need a Senior Data Engineer with strong Python and Spark experience for the HSBC Quantum Analytics project. The resource will design real-time data pipelines.",
+  },
+  {
+    id: "req-002", projectId: "prj-001", projectName: "Project Atlas", client: "Goldman Sachs",
+    requiredSkills: ["React", "TypeScript", "GraphQL", "Node.js"], experienceNeeded: 4,
+    priority: "critical", requestDate: "2025-06-22", startDate: "2025-07-01",
+    role: "Senior React Developer",
+    description: "Urgent requirement for a Senior React Developer to backfill the vacancy caused by a team member transitioning. Must have experience with financial dashboards.",
+  },
+  {
+    id: "req-003", projectId: "prj-017", projectName: "BlueSky Migration", client: "BP Digital",
+    requiredSkills: ["GCP", "Terraform", "Kubernetes", "Ansible"], experienceNeeded: 6,
+    priority: "high", requestDate: "2025-06-23", startDate: "2025-07-15",
+    role: "Cloud Solution Architect",
+    description: "Experienced Cloud Architect needed for BP Digital's migration project. Must have hands-on GCP and large-scale migration experience.",
+  },
+  {
+    id: "req-004", projectId: "prj-007", projectName: "DevPipeline Pro", client: "Amazon AWS",
+    requiredSkills: ["GitHub Actions", "ArgoCD", "Helm", "Go"], experienceNeeded: 3,
+    priority: "medium", requestDate: "2025-06-24", startDate: "2025-07-10",
+    role: "DevOps Engineer",
+    description: "DevOps engineer needed for the DevPipeline Pro project. GitOps experience with ArgoCD is mandatory.",
+  },
+  {
+    id: "req-005", projectId: "prj-018", projectName: "AgileOps Suite", client: "Airbus",
+    requiredSkills: ["Jenkins", "Docker", "Kubernetes", "Prometheus", "Grafana"], experienceNeeded: 4,
+    priority: "medium", requestDate: "2025-06-25", startDate: "2025-09-01",
+    role: "Platform Engineer",
+    description: "Platform engineer for upcoming Airbus DevOps transformation project. CI/CD and observability stack experience required.",
+  },
+  {
+    id: "req-006", projectId: "prj-004", projectName: "SecureBase v3", client: "Microsoft Corp.",
+    requiredSkills: ["OWASP", "Penetration Testing", "SAST", "Zero Trust"], experienceNeeded: 7,
+    priority: "critical", requestDate: "2025-06-18", startDate: "2025-07-05",
+    role: "Senior Security Consultant",
+    description: "Senior security professional needed to lead the zero-trust architecture implementation for Microsoft. CISSP certification preferred.",
+  },
+  {
+    id: "req-007", projectId: "prj-006", projectName: "Horizon Mobile", client: "Meta Platforms",
+    requiredSkills: ["React Native", "TypeScript", "iOS", "Android"], experienceNeeded: 3,
+    priority: "low", requestDate: "2025-06-19", startDate: "2025-07-20",
+    role: "Mobile Developer",
+    description: "React Native developer to support the Horizon Mobile project for Meta's internal productivity suite.",
+  },
+  {
+    id: "req-008", projectId: "prj-016", projectName: "Project Titan", client: "UBS Group",
+    requiredSkills: ["Next.js", "TypeScript", "GraphQL", "Node.js"], experienceNeeded: 5,
+    priority: "high", requestDate: "2025-06-21", startDate: "2025-07-08",
+    role: "Full Stack Developer",
+    description: "Full-stack developer for UBS wealth management portal. Next.js and GraphQL expertise required.",
+  },
+];
