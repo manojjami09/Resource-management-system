@@ -1,1 +1,0 @@
-- [RMS App Architecture](rms-app-arch.md) — frontend-only mock service pattern; replace return statements in services/ for Spring Boot integration
