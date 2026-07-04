@@ -76,17 +76,17 @@ export function SettingsPage() {
         <p className="text-sm text-slate-500 dark:text-slate-400">Manage your account, preferences, and system configuration</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar */}
-        <div className="w-52 flex-shrink-0">
-          <nav className="space-y-1">
+        <div className="w-full md:w-52 flex-shrink-0">
+          <nav className="flex flex-row md:flex-col gap-2 space-y-0 md:space-y-1 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
             {TABS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 data-testid={`settings-tab-${key}`}
                 onClick={() => setActiveTab(key)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
+                  "w-auto md:w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left whitespace-nowrap",
                   activeTab === key ? "bg-indigo-50 text-indigo-700" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-800"
                 )}
               >
@@ -148,7 +148,7 @@ export function SettingsPage() {
                 <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200">Appearance</h2>
                 <div>
                   <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-3">Theme</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {["Light", "Dark", "System"].map((t) => (
                       <button
                         key={t}
@@ -162,7 +162,7 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-3">Sidebar Mode</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {["Expanded", "Collapsed"].map((t) => (
                       <button
                         key={t}

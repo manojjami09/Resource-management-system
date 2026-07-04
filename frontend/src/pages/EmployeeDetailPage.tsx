@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   ArrowLeft, Briefcase, Calendar, Mail, CheckCircle2, 
-  PieChart, TrendingUp, DollarSign, Target 
+  PieChart, TrendingUp, DollarSign, Target, FolderKanban, Sparkles 
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -202,11 +202,11 @@ export function EmployeeDetailPage() {
           <Card className="flex-1 shadow-md border-slate-200 dark:border-slate-800">
             <CardHeader className="pb-0">
               <Tabs defaultValue="overview" className="w-full h-full flex flex-col">
-                <TabsList className="w-full justify-start p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl mb-6">
-                  <TabsTrigger value="overview" className="rounded-lg px-6 font-medium">Overview</TabsTrigger>
-                  <TabsTrigger value="skills" className="rounded-lg px-6 font-medium">Skills</TabsTrigger>
-                  <TabsTrigger value="allocations" className="rounded-lg px-6 font-medium">History</TabsTrigger>
-                  <TabsTrigger value="timeline" className="rounded-lg px-6 font-medium">Timeline</TabsTrigger>
+                <TabsList className="w-full justify-start p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl mb-6 overflow-x-auto flex-nowrap hide-scrollbar">
+                  <TabsTrigger value="overview" className="rounded-lg px-6 font-medium whitespace-nowrap">Overview</TabsTrigger>
+                  <TabsTrigger value="skills" className="rounded-lg px-6 font-medium whitespace-nowrap">Skills</TabsTrigger>
+                  <TabsTrigger value="allocations" className="rounded-lg px-6 font-medium whitespace-nowrap">History</TabsTrigger>
+                  <TabsTrigger value="timeline" className="rounded-lg px-6 font-medium whitespace-nowrap">Timeline</TabsTrigger>
                 </TabsList>
                 
                 <div className="flex-1 pb-6">
@@ -217,30 +217,32 @@ export function EmployeeDetailPage() {
                       </h3>
                       {employee.currentAllocations.length > 0 ? (
                         <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                          <Table>
-                            <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-                              <TableRow>
-                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Project</TableHead>
-                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Allocation</TableHead>
-                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Start Date</TableHead>
-                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">End Date</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {employee.currentAllocations.map(a => (
-                                <TableRow key={a.projectId + "-" + a.startDate} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                  <TableCell className="font-bold text-slate-900 dark:text-slate-100">{a.projectName}</TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
-                                      {a.allocationPercent}%
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground">{new Date(a.startDate).toLocaleDateString()}</TableCell>
-                                  <TableCell className="text-muted-foreground">{new Date(a.endDate).toLocaleDateString()}</TableCell>
+                          <div className="overflow-x-auto">
+                            <Table>
+                              <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
+                                <TableRow>
+                                  <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Project</TableHead>
+                                  <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Allocation</TableHead>
+                                  <TableHead className="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Start Date</TableHead>
+                                  <TableHead className="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">End Date</TableHead>
                                 </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
+                              </TableHeader>
+                              <TableBody>
+                                {employee.currentAllocations.map(a => (
+                                  <TableRow key={a.projectId + "-" + a.startDate} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                    <TableCell className="font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">{a.projectName}</TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800">
+                                        {a.allocationPercent}%
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(a.startDate).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(a.endDate).toLocaleDateString()}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12 px-4 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-900/20">
@@ -283,41 +285,43 @@ export function EmployeeDetailPage() {
                         <TrendingUp className="h-5 w-5 text-emerald-500" /> Project History
                       </h3>
                       <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                        <Table>
-                          <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-                            <TableRow>
-                              <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Project Name</TableHead>
-                              <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Allocation</TableHead>
-                              <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Duration</TableHead>
-                              <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {allocations.map(a => (
-                              <TableRow key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                <TableCell className="font-bold text-slate-900 dark:text-slate-100">{a.projectName}</TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800">
-                                    {a.allocationPercent}%
-                                  </Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground">{new Date(a.startDate).toLocaleDateString()} - {new Date(a.endDate).toLocaleDateString()}</TableCell>
-                                <TableCell>
-                                  <Badge className={a.status === "active" ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-slate-500 hover:bg-slate-600 text-white"}>
-                                    {a.status}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                            {allocations.length === 0 && (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
                               <TableRow>
-                                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
-                                  No previous allocation history found.
-                                </TableCell>
+                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Project Name</TableHead>
+                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Allocation</TableHead>
+                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">Duration</TableHead>
+                                <TableHead className="font-semibold text-slate-700 dark:text-slate-300">Status</TableHead>
                               </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
+                            </TableHeader>
+                            <TableBody>
+                              {allocations.map(a => (
+                                <TableRow key={a.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                  <TableCell className="font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">{a.projectName}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800">
+                                      {a.allocationPercent}%
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground whitespace-nowrap">{new Date(a.startDate).toLocaleDateString()} - {new Date(a.endDate).toLocaleDateString()}</TableCell>
+                                  <TableCell>
+                                    <Badge className={a.status === "active" ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "bg-slate-500 hover:bg-slate-600 text-white"}>
+                                      {a.status}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              {allocations.length === 0 && (
+                                <TableRow>
+                                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
+                                    No previous allocation history found.
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
                       </div>
                     </motion.div>
                   </TabsContent>
