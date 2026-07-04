@@ -17,7 +17,6 @@ import jakarta.persistence.EntityManager;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-@Profile("dev")
 public class DevDataSeeder {
 
     @Autowired
