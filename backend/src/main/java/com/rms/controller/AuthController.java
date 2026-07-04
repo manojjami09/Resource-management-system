@@ -40,27 +40,33 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        String role = userDetails.getAuthorities().iterator().next().getAuthority();
-        String jwt = jwtUtil.generateJwtToken(userDetails.getUsername(), role);
+            String role = userDetails.getAuthorities().iterator().next().getAuthority();
+            String jwt = jwtUtil.generateJwtToken(userDetails.getUsername(), role);
 
-        Long employeeId = null;
-        if (role.equals("ROLE_EMPLOYEE")) {
-            employeeId = employeeRepository.findByUser_Id(userDetails.getId())
-                    .map(Employee::getId)
-                    .orElse(null);
+            Long employeeId = null;
+            if (role.equals("ROLE_EMPLOYEE")) {
+                employeeId = employeeRepository.findByUser_Id(userDetails.getId())
+                        .map(Employee::getId)
+                        .orElse(null);
+            }
+
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername(),
+                    role,
+                    employeeId));
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            return ResponseEntity.status(401).body("Error: Invalid email or password");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: Internal server error - " + e.getMessage());
         }
-
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                role,
-                employeeId));
     }
 
     @PostMapping("/register")
