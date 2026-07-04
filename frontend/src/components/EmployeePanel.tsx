@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Phone, MapPin, Briefcase, Calendar, Award, ExternalLink } from "lucide-react";
-import { Employee, Allocation, TimelineEvent } from "../types";
-import { getEmployeeAllocations, getEmployeeTimeline } from "../services/employeeService";
+import { Employee, Allocation } from "../types";
+import { getEmployeeAllocations } from "../services/employeeService";
 import { StatusBadge } from "./StatusBadge";
 import { SkillBadge } from "./SkillBadge";
 import { UtilizationGauge } from "./UtilizationGauge";
@@ -16,14 +16,12 @@ interface EmployeePanelProps {
 
 export function EmployeePanel({ employee, onClose }: EmployeePanelProps) {
   const [allocations, setAllocations] = useState<Allocation[]>([]);
-  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
-  const [tab, setTab] = useState<"overview" | "allocations" | "timeline">("overview");
+  const [tab, setTab] = useState<"overview" | "allocations">("overview");
 
   useEffect(() => {
-    if (!employee) { setAllocations([]); setTimeline([]); return; }
+    if (!employee) { setAllocations([]); return; }
     setTab("overview");
     getEmployeeAllocations(employee.id).then(setAllocations);
-    getEmployeeTimeline(employee.id).then(setTimeline);
   }, [employee?.id]);
 
   return (
@@ -61,7 +59,7 @@ export function EmployeePanel({ employee, onClose }: EmployeePanelProps) {
 
             {/* Tabs */}
             <div className="flex border-b border-slate-200 bg-white">
-              {(["overview", "allocations", "timeline"] as const).map((t) => (
+              {(["overview", "allocations"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
@@ -89,6 +87,7 @@ export function EmployeePanel({ employee, onClose }: EmployeePanelProps) {
                         { icon: MapPin, label: employee.location },
                         { icon: Briefcase, label: `${employee.experience} years experience` },
                         { icon: Calendar, label: `Joined ${formatDate(employee.joiningDate)}` },
+                        ...(employee.monthlyCost ? [{ icon: Award, label: `Cost: ₹${employee.monthlyCost.toLocaleString()}/mo` }] : []),
                       ].map(({ icon: Icon, label }) => (
                         <div key={label} className="flex items-center gap-2.5 text-sm text-slate-600">
                           <Icon className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
@@ -160,7 +159,7 @@ export function EmployeePanel({ employee, onClose }: EmployeePanelProps) {
                           {a.status}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 mb-1">{a.role} · {a.allocationPercent}% allocation</p>
+                      <p className="text-xs text-slate-500 mb-1">{a.role}</p>
                       <p className="text-xs text-slate-400">{formatDate(a.startDate)} → {formatDate(a.endDate)}</p>
                       <div className="mt-2 flex items-center gap-2">
                         <span className={cn("text-xs px-1.5 py-0.5 rounded", a.billable ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
@@ -169,30 +168,6 @@ export function EmployeePanel({ employee, onClose }: EmployeePanelProps) {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {tab === "timeline" && (
-                <div className="p-5">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Career Timeline</h3>
-                  <div className="relative pl-6 border-l-2 border-slate-200 space-y-6">
-                    {timeline.map((event, i) => (
-                      <motion.div
-                        key={event.id}
-                        initial={{ opacity: 0, x: -8 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.06 }}
-                        className="relative"
-                      >
-                        <div className="absolute -left-[29px] h-4 w-4 rounded-full bg-indigo-100 border-2 border-indigo-500 flex items-center justify-center">
-                          <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                        </div>
-                        <p className="text-xs text-slate-400 mb-0.5">{formatDate(event.date)}</p>
-                        <p className="text-sm font-semibold text-slate-800">{event.title}</p>
-                        <p className="text-xs text-slate-500">{event.description}</p>
-                      </motion.div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>

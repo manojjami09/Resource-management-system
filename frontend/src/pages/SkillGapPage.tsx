@@ -144,7 +144,7 @@ export function SkillGapPage() {
 
       {activeTab === "forecast" && (
         <div className="space-y-4">
-          <ChartCard title="Skill Demand Forecast" subtitle="Projected requirements for Q3–Q4 2025" loading={loading}>
+          <ChartCard title="Skill Demand Forecast" subtitle="Projected requirements for the next 6 months" loading={loading}>
             <ResponsiveContainer width="100%" height={320}>
               <LineChart data={data?.demandForecast ?? []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />

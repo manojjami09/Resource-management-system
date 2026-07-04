@@ -13,5 +13,8 @@ public class ProjectDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private String status;
+    private Integer teamSize;
+    private Integer completionPercentage;
     private List<String> requiredSkills;
+    private Double budget;
 }

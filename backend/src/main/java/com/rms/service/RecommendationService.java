@@ -39,7 +39,8 @@ public class RecommendationService {
             int allocPct = allocationRepository.sumAllocationPercentByEmployeeId(emp.getId());
             double availabilityScore = 100.0 - allocPct;
 
-            Set<Skill> empSkills = emp.getSkills();
+            Set<Skill> empSkills = emp.getEmployeeSkills() != null ? 
+                emp.getEmployeeSkills().stream().map(com.rms.entity.EmployeeSkill::getSkill).collect(Collectors.toSet()) : Set.of();
             long overlap = requiredSkills.stream().filter(empSkills::contains).count();
             double jaccard = 0.0;
             if (!requiredSkills.isEmpty() || !empSkills.isEmpty()) {
@@ -52,7 +53,7 @@ public class RecommendationService {
 
             if (matchScore > 0) {
                 String reasoning = String.format("Matches %d required skills. Availability is %.1f%%.", overlap, availabilityScore);
-                recommendations.add(new RecommendationDto(MapperUtil.toEmployeeDto(emp, allocPct), matchScore, reasoning));
+                recommendations.add(new RecommendationDto(MapperUtil.toEmployeeDto(emp, allocPct, allocPct, null, new ArrayList<>()), matchScore, reasoning));
             }
         }
 

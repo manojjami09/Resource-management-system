@@ -23,7 +23,6 @@ const NAV_COMMANDS = [
   { label: "Smart Allocation", path: "/allocation", icon: Sparkles },
   { label: "Skill Gap Analytics", path: "/skill-gap", icon: BarChart3 },
   { label: "Reports", path: "/reports", icon: FileText },
-  { label: "Notifications", path: "/notifications", icon: Bell },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 

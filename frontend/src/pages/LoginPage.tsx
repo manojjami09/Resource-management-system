@@ -225,11 +225,13 @@ export function LoginPage() {
 
           {/* Demo hint */}
           <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
-            <p className="text-xs font-semibold text-indigo-700 mb-1">Demo credentials (Password: Demo@123)</p>
-            <ul className="text-xs text-indigo-600 list-disc list-inside">
-              <li>admin@demo.com (Admin)</li>
-              <li>manager@demo.com (Manager)</li>
-              <li>employee@demo.com (Employee)</li>
+            <p className="text-xs font-semibold text-indigo-700 mb-1">Demo credentials</p>
+            <ul className="text-xs text-indigo-600 list-disc list-inside space-y-1">
+              <li><strong>Admin:</strong> admin@techcorp.com / Admin@123</li>
+              <li><strong>Manager:</strong> manager@techcorp.com / Manager@123</li>
+              <li><strong>Employee:</strong> john.doe@techcorp.com / Employee@123</li>
+              <li><strong>Employee:</strong> jane.smith@techcorp.com / Employee@123</li>
+              <li><strong>Employee:</strong> bob.johnson@techcorp.com / Employee@123</li>
             </ul>
           </div>
         </motion.div>

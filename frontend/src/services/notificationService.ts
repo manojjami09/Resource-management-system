@@ -1,26 +1,44 @@
-import { notifications as allNotifications } from "../data/notifications";
+import axios from 'axios';
 import { Notification } from "../types";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-let localNotifications = [...allNotifications];
+const API_URL = "http://localhost:8080/api/notifications";
 
 export async function getNotifications(): Promise<Notification[]> {
-  await delay(250);
-  return [...localNotifications];
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(API_URL, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching notifications", error);
+    return [];
+  }
 }
 
 export async function markAsRead(id: string): Promise<void> {
-  await delay(150);
-  localNotifications = localNotifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+  try {
+    const token = localStorage.getItem("token");
+    await axios.put(`${API_URL}/${id}/read`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  } catch (error) {
+    console.error("Error marking notification as read", error);
+  }
 }
 
 export async function markAllAsRead(): Promise<void> {
-  await delay(300);
-  localNotifications = localNotifications.map((n) => ({ ...n, read: true }));
+  try {
+    const token = localStorage.getItem("token");
+    await axios.put(`${API_URL}/read-all`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  } catch (error) {
+    console.error("Error marking all as read", error);
+  }
 }
 
 export async function getUnreadCount(): Promise<number> {
-  await delay(100);
-  return localNotifications.filter((n) => !n.read).length;
+  const notifs = await getNotifications();
+  return notifs.filter(n => !n.read).length;
 }

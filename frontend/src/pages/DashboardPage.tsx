@@ -14,6 +14,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { cn } from "@/lib/utils";
+import { useAuth } from "../context/AuthContext";
 
 const CHART_COLORS = ["#6366f1", "#3b82f6", "#10b981", "#f59e0b", "#f43f5e"];
 
@@ -24,23 +25,58 @@ const insightIconMap = {
 };
 
 export function DashboardPage() {
-  const { stats, managerSummary, loading } = useDashboard();
+  const { role } = useAuth();
+  const { stats, myProfile, myProjects, managerSummary, loading } = useDashboard();
 
   const kpiCards = stats ? [
     { title: "Total Employees", value: stats.totalEmployees, change: 3.2, icon: Users, iconColor: "text-indigo-600", iconBg: "bg-indigo-50" },
-    { title: "Bench %", value: `${stats.benchPercent}%`, change: -1.7, icon: BarChart3, iconColor: "text-amber-600", iconBg: "bg-amber-50" },
+    { title: "Bench %", value: `${Number(stats.benchPercent || 0).toFixed(1)}%`, change: -1.7, icon: BarChart3, iconColor: "text-amber-600", iconBg: "bg-amber-50" },
     { title: "Active Projects", value: stats.activeProjects, change: 5.1, icon: FolderKanban, iconColor: "text-emerald-600", iconBg: "bg-emerald-50" },
-    { title: "Avg Utilization", value: `${stats.avgUtilization}%`, change: 3.0, icon: TrendingUp, iconColor: "text-blue-600", iconBg: "bg-blue-50" },
-    { title: "Monthly Revenue", value: formatCurrency(stats.revenueThisMonth, true), change: stats.revenueGrowth, icon: DollarSign, iconColor: "text-purple-600", iconBg: "bg-purple-50" },
-    { title: "Open Requests", value: stats.openRequests, change: -8.3, icon: Inbox, iconColor: "text-rose-600", iconBg: "bg-rose-50" },
+    { title: "Avg Utilization", value: `${Number(stats.avgUtilization || 0).toFixed(1)}%`, change: 3.0, icon: TrendingUp, iconColor: "text-blue-600", iconBg: "bg-blue-50" }
   ] : [];
+
+  if (role === "ROLE_EMPLOYEE") {
+    return (
+      <div className="p-6 space-y-6 max-w-screen-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <MetricCard title="My Utilization" value={myProfile ? `${myProfile.utilizationPercent}%` : "0%"} icon={TrendingUp} iconColor="text-blue-600" iconBg="bg-blue-50" />
+          <MetricCard title="My Projects" value={myProjects?.length || 0} icon={FolderKanban} iconColor="text-emerald-600" iconBg="bg-emerald-50" />
+        </div>
+        
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-6">My Allocation Timeline</h2>
+          {myProfile?.currentAllocations && myProfile.currentAllocations.length > 0 ? (
+            <div className="space-y-4">
+              {myProfile.currentAllocations.map((alloc: any) => (
+                <div key={alloc.projectId} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-100">
+                  <div>
+                    <h3 className="font-semibold text-slate-800">{alloc.projectName}</h3>
+                    <p className="text-sm text-slate-500">From {formatDate(alloc.startDate)} to {formatDate(alloc.endDate)}</p>
+                  </div>
+                  <div className="mt-3 md:mt-0">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                      {alloc.allocationPercent}% Allocated
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 bg-slate-50 rounded-lg border border-slate-100">
+              <p className="text-slate-500 italic">No current project allocations.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 max-w-screen-2xl">
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-4">
         {loading
-          ? Array.from({ length: 6 }).map((_, i) => <MetricCard key={i} title="" value="" icon={Users} loading index={i} />)
+          ? Array.from({ length: 4 }).map((_, i) => <MetricCard key={i} title="" value="" icon={Users} loading index={i} />)
           : kpiCards.map((card, i) => <MetricCard key={card.title} {...card} index={i} />)
         }
       </div>
@@ -49,7 +85,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <ChartCard title="Utilization Trend" subtitle="12-month rolling average" className="lg:col-span-2" loading={loading} index={0}>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={stats?.utilizationHistory.map((d) => ({ ...d, name: d.month, utilization: d.value }))}>
+            <AreaChart data={stats?.utilizationHistory?.map((d) => ({ ...d, name: d.month, utilization: d.value })) || []}>
               <defs>
                 <linearGradient id="utilGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
@@ -66,15 +102,7 @@ export function DashboardPage() {
         </ChartCard>
 
         <ChartCard title="Project Status" subtitle="Current distribution" loading={loading} index={1}>
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={stats?.projectStatusBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="count" nameKey="status">
-                {stats?.projectStatusBreakdown.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Pie>
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex items-center justify-center h-[220px] text-sm text-slate-400">Data not available</div>
         </ChartCard>
       </div>
 
@@ -82,7 +110,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Capacity vs Demand" subtitle="Monthly resource balance" loading={loading} index={2}>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={stats?.capacityVsDemand.map((d) => ({ name: d.month, Capacity: d.capacity, Demand: d.demand }))}>
+            <BarChart data={stats?.capacityVsDemand?.map((d) => ({ name: d.month, Capacity: d.capacity, Demand: d.demand })) || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
@@ -95,23 +123,7 @@ export function DashboardPage() {
         </ChartCard>
 
         <ChartCard title="Department Utilization" subtitle="By department headcount" loading={loading} index={3}>
-          <div className="space-y-3 mt-1">
-            {stats?.departmentUtilization.map((d) => (
-              <div key={d.dept} className="flex items-center gap-3">
-                <span className="text-xs text-slate-500 w-24 truncate flex-shrink-0">{d.dept}</span>
-                <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${d.utilization}%` }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className={cn("h-full rounded-full", d.utilization >= 85 ? "bg-indigo-500" : d.utilization >= 70 ? "bg-emerald-500" : "bg-amber-400")}
-                  />
-                </div>
-                <span className="text-xs font-semibold text-slate-700 w-8 text-right">{d.utilization}%</span>
-                <span className="text-xs text-slate-400 w-10 text-right">{d.headcount}</span>
-              </div>
-            ))}
-          </div>
+          <div className="flex items-center justify-center h-[200px] text-sm text-slate-400">Data not available</div>
         </ChartCard>
       </div>
 
@@ -146,8 +158,12 @@ export function DashboardPage() {
                 transition={{ delay: i * 0.04 }}
                 className="flex items-start gap-3"
               >
-                <div className="h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
-                  {a.avatar}
+                <div className="h-7 w-7 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {a.avatar?.startsWith('http') ? (
+                    <img src={a.avatar} alt="avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-indigo-600">{a.avatar}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-700 leading-snug">{a.message}</p>
@@ -170,8 +186,12 @@ export function DashboardPage() {
                 transition={{ delay: i * 0.06 }}
                 className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100"
               >
-                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600 flex-shrink-0">
-                  {r.avatar}
+                <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {r.avatar?.startsWith('http') ? (
+                    <img src={r.avatar} alt="avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-indigo-600">{r.avatar}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-800 truncate">{r.employeeName}</p>

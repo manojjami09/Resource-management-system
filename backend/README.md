@@ -14,7 +14,7 @@ Configure these environment variables before running (or rely on defaults in `ap
 - `DATABASE_USER` (default: `postgres`)
 - `DATABASE_PASSWORD` (default: `postgres`)
 - `JWT_SECRET` (default: generated secret)
-- `GEMINI_API_KEY` (required for InsightsService to function properly)
+- `GROQ_API_KEY` (required for InsightsService to function properly)
 - `FRONTEND_URL` (default: `http://localhost:5173`)
 
 ## Running Locally
@@ -36,5 +36,5 @@ Swagger OpenAPI documentation is automatically generated. Once the application i
 To build and run via Docker:
 ```bash
 docker build -t rms-backend .
-docker run -p 8080:8080 -e GEMINI_API_KEY=your_key -e DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/rms rms-backend
+docker run -p 8080:8080 -e GROQ_API_KEY=your_key -e DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/rms rms-backend
 ```

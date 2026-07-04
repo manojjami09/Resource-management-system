@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -34,11 +36,14 @@ public class Employee {
 
     private String department;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "employee_skills",
-            joinColumns = @JoinColumn(name = "employee_id"),
-            inverseJoinColumns = @JoinColumn(name = "skill_id")
-    )
-    private Set<Skill> skills;
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmployeeSkill> employeeSkills = new java.util.ArrayList<>();
+
+    private String email;
+
+    @Column(name = "joining_date")
+    private LocalDate joiningDate;
+
+    @Column(name = "monthly_cost")
+    private Double monthlyCost;
 }

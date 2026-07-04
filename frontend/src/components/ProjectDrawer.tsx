@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Users, Calendar, AlertTriangle, CheckCircle, Clock } from "lucide-react";
-import { Project, Employee, Milestone } from "../types";
-import { getProjectTeam } from "../services/projectService";
+import { X, Users, Calendar, AlertTriangle, CheckCircle, Clock, Send } from "lucide-react";
+import { Project, Employee, Milestone, ProjectUpdate } from "../types";
+import { getProjectTeam, getProjectUpdates, postProjectUpdate, updateProjectCompletion } from "../services/projectService";
+import { useAuth } from "../context/AuthContext";
 import { StatusBadge } from "./StatusBadge";
 import { PriorityBadge } from "./PriorityBadge";
 import { SkillBadge } from "./SkillBadge";
@@ -22,12 +23,39 @@ interface ProjectDrawerProps {
 }
 
 export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
+  const { role } = useAuth();
   const [team, setTeam] = useState<Employee[]>([]);
+  const [isLoadingTeam, setIsLoadingTeam] = useState(true);
+  const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
+  const [newUpdate, setNewUpdate] = useState("");
+  const [completion, setCompletion] = useState(project?.completionPercent || 0);
 
   useEffect(() => {
-    if (!project) { setTeam([]); return; }
-    getProjectTeam(project.id).then(setTeam);
+    if (!project) { setTeam([]); setUpdates([]); setIsLoadingTeam(false); return; }
+    setCompletion(project.completionPercent);
+    setIsLoadingTeam(true);
+    getProjectTeam(project.id).then((t) => {
+      setTeam(t);
+      setIsLoadingTeam(false);
+    });
+    getProjectUpdates(project.id).then(setUpdates);
   }, [project?.id]);
+
+  const handlePostUpdate = async () => {
+    if (!newUpdate.trim() || !project) return;
+    const added = await postProjectUpdate(project.id, newUpdate);
+    setUpdates([added, ...updates]);
+    setNewUpdate("");
+  };
+
+  const handleCompletionChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    setCompletion(val);
+    if (project) {
+      project.completionPercent = val;
+      await updateProjectCompletion(project.id, val);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -57,7 +85,7 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
               </div>
               <h2 className="text-xl font-bold mb-1">{project.projectName}</h2>
               <p className="text-slate-300 text-sm">{project.client}</p>
-              <p className="text-slate-400 text-xs mt-0.5">{project.projectId} · {project.manager}</p>
+              <p className="text-slate-400 text-xs mt-0.5">{project.projectId}</p>
             </div>
 
             <div className="flex-1 overflow-y-auto">
@@ -65,7 +93,7 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                 {/* Completion & Health */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-slate-50 rounded-xl p-3 text-center">
-                    <p className="text-xl font-bold text-slate-900">{project.completionPercent}%</p>
+                    <p className="text-xl font-bold text-slate-900">{completion}%</p>
                     <p className="text-xs text-slate-500 mt-0.5">Complete</p>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-3 text-center">
@@ -84,15 +112,26 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                 <div>
                   <div className="flex justify-between text-xs text-slate-500 mb-1.5">
                     <span>Overall Progress</span>
-                    <span>{project.completionPercent}%</span>
+                    <span>{completion}%</span>
                   </div>
-                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
                     <motion.div
-                      initial={{ width: 0 }} animate={{ width: `${project.completionPercent}%` }}
+                      initial={{ width: 0 }} animate={{ width: `${completion}%` }}
                       transition={{ duration: 0.8, ease: "easeOut" }}
                       className={cn("h-full rounded-full", project.health === "green" ? "bg-indigo-500" : project.health === "yellow" ? "bg-amber-400" : "bg-red-500")}
                     />
                   </div>
+                  {(role === "ROLE_ADMIN" || role === "ROLE_MANAGER") && (
+                    <div className="mt-2">
+                      <label className="text-xs text-slate-500 block mb-1">Update Completion</label>
+                      <input 
+                        type="range" min="0" max="100" 
+                        value={completion} 
+                        onChange={handleCompletionChange}
+                        className="w-full accent-indigo-600"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Timeline */}
@@ -109,15 +148,17 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                     Team ({project.allocatedSize}/{project.teamSize})
                   </h3>
-                  {team.length > 0 ? (
+                  {isLoadingTeam ? (
+                    <p className="text-sm text-slate-400">Loading team...</p>
+                  ) : team.length > 0 ? (
                     <div className="space-y-2">
-                      <AvatarGroup names={team.map((e) => e.employeeName)} max={8} />
+                      <AvatarGroup names={team.map((e) => e.employeeName || e.name)} max={8} />
                       <div className="space-y-1.5">
                         {team.slice(0, 4).map((emp) => (
                           <div key={emp.id} className="flex items-center gap-2.5 text-sm">
-                            <img src={emp.avatar} alt={emp.employeeName} className="h-6 w-6 rounded-full bg-slate-100" />
+                            <img src={emp.avatar} alt={emp.employeeName || emp.name} className="h-6 w-6 rounded-full bg-slate-100" />
                             <div className="flex-1 min-w-0">
-                              <span className="font-medium text-slate-700 truncate block">{emp.employeeName}</span>
+                              <span className="font-medium text-slate-700 truncate block">{emp.employeeName || emp.name}</span>
                             </div>
                             <span className="text-xs text-slate-400">{emp.designation}</span>
                           </div>
@@ -125,7 +166,7 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                         {team.length > 4 && <p className="text-xs text-slate-400">+{team.length - 4} more team members</p>}
                       </div>
                     </div>
-                  ) : <p className="text-sm text-slate-400">Loading team...</p>}
+                  ) : <p className="text-sm text-slate-400">No team members allocated yet.</p>}
                 </div>
 
                 {/* Required Skills */}
@@ -168,8 +209,12 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                     </div>
                   </div>
                   <div className="bg-slate-50 rounded-xl p-3">
-                    <p className="text-xs text-slate-500 mb-1">Budget Burn</p>
-                    <p className="text-sm font-semibold text-slate-800">{Math.round((project.billedAmount / project.budget) * 100)}%</p>
+                    <p className="text-xs text-slate-500 mb-1">Budget</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-slate-700">
+                        {project.budget ? `₹${project.budget.toLocaleString()}` : "Not Set"}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -177,6 +222,47 @@ export function ProjectDrawer({ project, onClose }: ProjectDrawerProps) {
                 <div>
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Description</h3>
                   <p className="text-sm text-slate-600 leading-relaxed">{project.description}</p>
+                </div>
+
+                {/* Activity Feed */}
+                <div>
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Activity Feed & Updates</h3>
+                  
+                  {/* Post Update */}
+                  <div className="mb-4 flex gap-2">
+                    <textarea 
+                      placeholder="Post a project update..." 
+                      className="flex-1 text-sm rounded-md border border-slate-200 p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none h-10 min-h-[40px]"
+                      value={newUpdate}
+                      onChange={(e) => setNewUpdate(e.target.value)}
+                    />
+                    <button 
+                      onClick={handlePostUpdate}
+                      disabled={!newUpdate.trim()}
+                      className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white p-2 rounded-md transition-colors flex items-center justify-center h-10 w-10"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Feed List */}
+                  <div className="space-y-4">
+                    {updates.length === 0 ? (
+                      <p className="text-sm text-slate-400 italic text-center py-2">No updates posted yet.</p>
+                    ) : (
+                      updates.map((update) => (
+                        <div key={update.id} className="bg-slate-50 rounded-lg p-3 text-sm">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold text-slate-800">{update.authorName}</span>
+                            <span className="text-xs text-slate-400">
+                              {new Date(update.createdAt).toLocaleDateString()} {new Date(update.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 whitespace-pre-wrap">{update.content}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

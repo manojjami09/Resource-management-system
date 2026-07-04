@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, SlidersHorizontal, Circle, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, Circle, ChevronUp, ChevronDown, Edit2, Trash2 } from "lucide-react";
 import { useProjects } from "../hooks/useProjects";
 import { useDebounce } from "../hooks/useDebounce";
 import { ProjectDrawer } from "../components/ProjectDrawer";
@@ -11,7 +11,8 @@ import { Project, ProjectStatus } from "../types";
 import { formatDate, formatCurrency } from "../utils/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "../context/AuthContext";
-import { Plus } from "lucide-react";
+import { AddProjectModal } from "../components/AddProjectModal";
+import { deleteProject } from "../services/projectService";
 
 const healthColors = {
   green: "text-emerald-500",
@@ -25,8 +26,13 @@ export function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Project | null>(null);
   const [filterStatus, setFilterStatus] = useState<ProjectStatus[]>([]);
+  const [filterClient, setFilterClient] = useState<string[]>([]);
+  const [filterPriority, setFilterPriority] = useState<string[]>([]);
+  const [filterHealth, setFilterHealth] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const debouncedSearch = useDebounce(search, 250);
+
+  const uniqueClients = useMemo(() => Array.from(new Set(projects.map(p => p.client))).filter(Boolean), [projects]);
 
   const filtered = useMemo(() => {
     let data = [...projects];
@@ -35,13 +41,15 @@ export function ProjectsPage() {
       data = data.filter((p) =>
         p.projectName.toLowerCase().includes(q) ||
         p.client.toLowerCase().includes(q) ||
-        p.manager.toLowerCase().includes(q) ||
         p.projectId.toLowerCase().includes(q)
       );
     }
     if (filterStatus.length) data = data.filter((p) => filterStatus.includes(p.status));
+    if (filterClient.length) data = data.filter((p) => filterClient.includes(p.client));
+    if (filterPriority.length) data = data.filter((p) => filterPriority.includes(p.priority));
+    if (filterHealth.length) data = data.filter((p) => filterHealth.includes(p.health));
     return data;
-  }, [projects, debouncedSearch, filterStatus]);
+  }, [projects, debouncedSearch, filterStatus, filterClient, filterPriority, filterHealth]);
 
   if (loading) return (
     <div className="p-6">
@@ -86,33 +94,85 @@ export function ProjectsPage() {
           </button>
           
           {(role === "ROLE_ADMIN" || role === "ROLE_MANAGER") && (
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors">
-              <Plus className="h-4 w-4" />
-              New Project
-            </button>
+            <AddProjectModal onSuccess={() => {}} />
           )}
         </div>
       </div>
 
-      {/* Filter bar */}
-      {showFilters && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Status</p>
-          <div className="flex flex-wrap gap-2">
-            {(["active", "planning", "on-hold", "completed"] as ProjectStatus[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])}
-                className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize",
-                  filterStatus.includes(s) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
-                )}
-              >
-                {s.split("-").join(" ")}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      )}
+        {/* Filter bar */}
+        {showFilters && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-xl border border-slate-200 p-4 space-y-4">
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Status</p>
+              <div className="flex flex-wrap gap-2">
+                {(["active", "planning", "on-hold", "completed"] as ProjectStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setFilterStatus((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])}
+                    className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize",
+                      filterStatus.includes(s) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                    )}
+                  >
+                    {s.split("-").join(" ")}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Health</p>
+                <div className="flex flex-wrap gap-2">
+                  {["green", "yellow", "red"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setFilterHealth((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])}
+                      className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize",
+                        filterHealth.includes(s) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Priority</p>
+                <div className="flex flex-wrap gap-2">
+                  {["low", "medium", "high"].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setFilterPriority((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])}
+                      className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-colors capitalize",
+                        filterPriority.includes(s) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                      )}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Client</p>
+                <div className="flex flex-wrap gap-2">
+                  {uniqueClients.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setFilterClient((prev) => prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c])}
+                      className={cn("px-3 py-1 rounded-full text-xs font-medium border transition-colors",
+                        filterClient.includes(c) ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
       {/* Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -120,7 +180,7 @@ export function ProjectsPage() {
           <table className="w-full text-sm" data-testid="projects-table">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/60">
-                {["Project", "Client", "Manager", "Status", "Health", "Priority", "Team", "Completion", "Timeline", "Budget"].map((h) => (
+                {["Project", "Client", "Status", "Health", "Priority", "Team", "Completion", "Timeline"].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -134,14 +194,13 @@ export function ProjectsPage() {
                   transition={{ delay: i * 0.02 }}
                   onClick={() => setSelected(prj)}
                   data-testid={`row-project-${prj.id}`}
-                  className="border-b border-slate-50 hover:bg-indigo-50/30 cursor-pointer transition-colors"
+                  className="border-b border-slate-50 hover:bg-indigo-50/30 cursor-pointer transition-colors group"
                 >
                   <td className="px-4 py-3">
                     <p className="font-medium text-slate-900 whitespace-nowrap">{prj.projectName}</p>
                     <p className="text-xs text-slate-400">{prj.projectId}</p>
                   </td>
                   <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{prj.client}</td>
-                  <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{prj.manager}</td>
                   <td className="px-4 py-3"><StatusBadge status={prj.status} type="project" /></td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
@@ -175,7 +234,28 @@ export function ProjectsPage() {
                   <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
                     {formatDate(prj.startDate).split(" ").slice(0, 2).join(" ")} → {formatDate(prj.endDate).split(" ").slice(0, 2).join(" ")}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{formatCurrency(prj.budget, true)}</td>
+                  {(role === "ROLE_ADMIN" || role === "ROLE_MANAGER") && (
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <AddProjectModal 
+                          initialData={prj} 
+                          onSuccess={() => window.location.reload()} 
+                          trigger={<button className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-md hover:bg-indigo-50"><Edit2 className="h-4 w-4" /></button>} 
+                        />
+                        <button 
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                          onClick={async () => {
+                            if (confirm("Are you sure you want to delete this project?")) {
+                              await deleteProject(prj.id);
+                              window.location.reload();
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </motion.tr>
               ))}
             </tbody>

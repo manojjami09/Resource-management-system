@@ -1,6 +1,6 @@
 package com.rms.controller;
 
-import com.rms.dto.SkillGapDto;
+import com.rms.dto.SkillGapAnalyticsDto;
 import com.rms.service.SkillGapService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +18,7 @@ public class SkillController {
     private SkillGapService skillGapService;
 
     @GetMapping("/gap-analysis")
-    public ResponseEntity<List<SkillGapDto>> getSkillGapAnalysis() {
+    public ResponseEntity<SkillGapAnalyticsDto> getSkillGapAnalysis() {
         return ResponseEntity.ok(skillGapService.getSkillGaps());
     }
 }

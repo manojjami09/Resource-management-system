@@ -11,12 +11,13 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 @Service
 public class InsightsService {
 
-    @Value("${app.gemini.api-key}")
-    private String geminiApiKey;
+    @Value("${app.groq.api-key}")
+    private String groqApiKey;
 
     @Autowired
     private DashboardService dashboardService;
@@ -24,7 +25,7 @@ public class InsightsService {
     private final WebClient webClient;
 
     public InsightsService(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder.baseUrl("https://generativelanguage.googleapis.com").build();
+        this.webClient = webClientBuilder.baseUrl("https://api.groq.com").build();
     }
 
     @Cacheable("managerSummary")
@@ -39,40 +40,61 @@ public class InsightsService {
         );
 
         Map<String, Object> requestBody = new HashMap<>();
-        Map<String, Object> content = new HashMap<>();
-        Map<String, Object> part = new HashMap<>();
-        part.put("text", promptText);
-        content.put("parts", new Object[]{part});
-        requestBody.put("contents", new Object[]{content});
+        requestBody.put("model", "llama-3.1-8b-instant");
+        
+        Map<String, Object> systemMessage = new HashMap<>();
+        systemMessage.put("role", "system");
+        systemMessage.put("content", "You are an AI assistant for a resource management system. Provide concise, actionable insights for managers.");
+        
+        Map<String, Object> userMessage = new HashMap<>();
+        userMessage.put("role", "user");
+        userMessage.put("content", promptText);
+        
+        requestBody.put("messages", new Object[]{systemMessage, userMessage});
+        requestBody.put("max_tokens", 256);
+        requestBody.put("temperature", 0.7);
+        
+        try {
+            String jsonBody = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(requestBody);
+            System.out.println("DEBUG Groq Request Body: " + jsonBody);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        if (geminiApiKey == null || geminiApiKey.isEmpty()) {
-            return "Gemini API Key is not configured. AI insights are currently disabled.";
+        if (groqApiKey == null || groqApiKey.isEmpty() || groqApiKey.equals("mock-key")) {
+            return "Groq API Key is not configured. Add it to application.yml to enable AI Manager Insights!";
         }
 
         try {
             Map response = webClient.post()
-                    .uri("/v1beta/models/gemini-1.5-flash:generateContent?key=" + geminiApiKey)
+                    .uri("/openai/v1/chat/completions")
+                    .header("Authorization", "Bearer " + groqApiKey)
+                    .header("Content-Type", "application/json")
+                    .header("User-Agent", "RMS-Backend/1.0")
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();
 
             // Extract the text safely
-            if (response != null && response.containsKey("candidates")) {
-                List candidates = (List) response.get("candidates");
-                if (!candidates.isEmpty()) {
-                    Map firstCandidate = (Map) candidates.get(0);
-                    Map contentObj = (Map) firstCandidate.get("content");
-                    List parts = (List) contentObj.get("parts");
-                    if (!parts.isEmpty()) {
-                        Map firstPart = (Map) parts.get(0);
-                        return (String) firstPart.get("text");
+            if (response != null && response.containsKey("choices")) {
+                List choices = (List) response.get("choices");
+                if (!choices.isEmpty()) {
+                    Map firstChoice = (Map) choices.get(0);
+                    Map messageObj = (Map) firstChoice.get("message");
+                    if (messageObj != null && messageObj.containsKey("content")) {
+                        return (String) messageObj.get("content");
                     }
                 }
             }
             return "Unable to generate insights at this moment.";
+        } catch (WebClientResponseException e) {
+            System.err.println("Groq API Error Status: " + e.getStatusCode());
+            System.err.println("Groq API Error Body: " + e.getResponseBodyAsString());
+            return "AI insights temporarily unavailable";
         } catch (Exception e) {
-            return "Error generating insights: " + e.getMessage();
+            System.err.println("Groq API Error: " + e.getMessage());
+            return "AI insights temporarily unavailable";
         }
     }
 }

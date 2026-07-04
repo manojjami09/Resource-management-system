@@ -6,6 +6,8 @@ import com.rms.dto.RegisterRequest;
 import com.rms.entity.Role;
 import com.rms.entity.User;
 import com.rms.repository.UserRepository;
+import com.rms.repository.EmployeeRepository;
+import com.rms.entity.Employee;
 import com.rms.security.JwtUtil;
 import com.rms.security.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class AuthController {
     UserRepository userRepository;
 
     @Autowired
+    EmployeeRepository employeeRepository;
+
+    @Autowired
     PasswordEncoder encoder;
 
     @Autowired
@@ -44,10 +49,18 @@ public class AuthController {
         String role = userDetails.getAuthorities().iterator().next().getAuthority();
         String jwt = jwtUtil.generateJwtToken(userDetails.getUsername(), role);
 
+        Long employeeId = null;
+        if (role.equals("ROLE_EMPLOYEE")) {
+            employeeId = employeeRepository.findByUser_Id(userDetails.getId())
+                    .map(Employee::getId)
+                    .orElse(null);
+        }
+
         return ResponseEntity.ok(new JwtResponse(jwt,
                 userDetails.getId(),
                 userDetails.getUsername(),
-                role));
+                role,
+                employeeId));
     }
 
     @PostMapping("/register")

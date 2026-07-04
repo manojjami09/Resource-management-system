@@ -3,9 +3,9 @@ spring:
     name: resource-manager-backend
 
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/rms}
-    username: ${DATABASE_USER:postgres}
-    password: ${DATABASE_PASSWORD:postgres}
+    url: jdbc:postgresql://ep-proud-dust-atzzr3lj-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+    username: neondb_owner
+    password: npg_xOjzUNie7M6Q
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -23,9 +23,9 @@ spring:
 app:
   security:
     jwt:
-      secret: ${JWT_SECRET}
+      secret: ${JWT_SECRET:my-very-secret-and-secure-jwt-key-that-is-long-enough-1234567890}
       expirationMs: 86400000 # 24 hours
   cors:
     allowed-origin: ${FRONTEND_URL:http://localhost:5173}
-  gemini:
-    api-key: ${GEMINI_API_KEY}
+  groq:
+    api-key: ${GROQ_API_KEY:your_groq_api_key_here}

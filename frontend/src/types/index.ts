@@ -9,27 +9,41 @@ export type NotificationPriority = "high" | "medium" | "low";
 export type SkillSeverity = "critical" | "high" | "medium";
 export type ReportFormat = "excel" | "pdf";
 
+export interface EmployeeSkill {
+  id: string;
+  name: string;
+  proficiencyLevel: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+}
+
+export interface CurrentAllocation {
+  projectId: string;
+  projectName: string;
+  allocationPercent: number;
+  startDate: string;
+  endDate: string;
+}
+
 export interface Employee {
   id: string;
   employeeId: string;
-  employeeName: string;
+  name: string;
+  email: string;
   avatar: string;
   designation: string;
-  manager: string;
   department: string;
-  experience: number;
-  location: string;
-  skills: string[];
-  certifications: string[];
-  utilization: number;
   status: EmployeeStatus;
   joiningDate: string;
-  availabilityDate: string;
-  email: string;
-  phone: string;
-  salary: number;
-  currentProject: string | null;
-  billableRate: number;
+  experience: number;
+  skills: EmployeeSkill[];
+  totalAllocationPercent: number;
+  utilizationPercent: number;
+  availableFrom: string | null;
+  currentAllocations: CurrentAllocation[];
+  monthlyCost?: number;
+  
+  phone?: string;
+  location?: string;
+  manager?: string;
 }
 
 export interface Project {
@@ -40,20 +54,27 @@ export interface Project {
   status: ProjectStatus;
   startDate: string;
   endDate: string;
-  manager: string;
   department: string;
   requiredSkills: string[];
   teamSize: number;
   allocatedSize: number;
-  budget: number;
   billedAmount: number;
   completionPercent: number;
   health: ProjectHealth;
   priority: ProjectPriority;
   description: string;
+  budget?: number;
   milestones: Milestone[];
   vacantPositions: number;
   riskLevel: RiskLevel;
+}
+
+export interface ProjectUpdate {
+  id: string;
+  projectId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
 }
 
 export interface Milestone {
@@ -265,3 +286,20 @@ export interface ProjectFilters {
   priority?: ProjectPriority[];
   department?: string[];
 }
+
+export interface SkillMatrixEmployee {
+  id: string;
+  name: string;
+}
+
+export interface SkillMatrixSkill {
+  id: string;
+  name: string;
+}
+
+export interface SkillMatrixData {
+  employees: SkillMatrixEmployee[];
+  skills: SkillMatrixSkill[];
+  matrix: (string | null)[][];
+}
+

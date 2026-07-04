@@ -43,6 +43,11 @@ export function AllocationPage() {
         title: "Allocation Created",
         description: "The resource has been successfully allocated.",
       });
+      // Refetch both suggestions and requests
+      const newSuggestions = await getSuggestedEmployees(selectedRequest.id);
+      setSuggestions(newSuggestions);
+      const newRequests = await getPendingRequests();
+      setRequests(newRequests);
     } catch (error: any) {
       toast({
         title: "Allocation Failed",
@@ -128,7 +133,7 @@ export function AllocationPage() {
               </div>
               <h3 className="text-sm font-semibold text-slate-700 mb-1">Select a request to start matching</h3>
               <p className="text-xs text-slate-400 max-w-xs">
-                The AI engine will analyze {'{'}skills, experience, availability, and utilization{'}'} to find the best resource matches.
+                The AI engine will analyze skills, experience, availability, and utilization to find the best resource matches.
               </p>
             </div>
           )}
@@ -153,7 +158,7 @@ export function AllocationPage() {
               {/* Suggestions */}
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-semibold text-slate-700">
-                  {loadingSuggestions ? "Analyzing candidates..." : `Top ${suggestions.length} Matches`}
+                  {loadingSuggestions ? "Analyzing candidates..." : `Available Candidates`}
                 </h2>
                 {loadingSuggestions && <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />}
               </div>
@@ -163,99 +168,133 @@ export function AllocationPage() {
                   ? Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="h-48 bg-slate-100 rounded-xl animate-pulse" />
                   ))
-                  : suggestions.map((s, i) => (
-                    <motion.div
-                      key={s.employee.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      data-testid={`suggestion-${s.employee.id}`}
-                      className="bg-white rounded-xl border border-slate-200 p-4 hover:border-indigo-200 hover:shadow-sm transition-all"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Avatar + gauge */}
-                        <div className="flex flex-col items-center gap-1">
-                          <img src={s.employee.avatar} alt={s.employee.employeeName} className="h-10 w-10 rounded-full bg-slate-100" />
-                          <UtilizationGauge value={s.employee.utilization} size="sm" showLabel={false} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-1.5">
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800">{s.employee.employeeName}</p>
-                              <p className="text-xs text-slate-500">{s.employee.designation} · {s.employee.department}</p>
+                  : (() => {
+                      const availableCandidates = suggestions.filter(s => {
+                        const st = (s.employee.status || "").toUpperCase();
+                        return st === "BENCH" || st === "AVAILABLE";
+                      });
+                      const unavailableCandidates = suggestions.filter(s => {
+                        const st = (s.employee.status || "").toUpperCase();
+                        return st === "ALLOCATED";
+                      });
+                      
+                      const renderCard = (s: SuggestedEmployee, i: number, isUnavailable: boolean) => (
+                        <motion.div
+                          key={s.employee.id}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                          data-testid={`suggestion-${s.employee.id}`}
+                          className={cn(
+                            "bg-white rounded-xl border p-4 transition-all",
+                            isUnavailable ? "border-slate-200 opacity-70 grayscale-[20%]" : "border-slate-200 hover:border-indigo-200 hover:shadow-sm"
+                          )}
+                        >
+                          <div className="flex items-start gap-4">
+                            {/* Avatar + gauge */}
+                            <div className="flex flex-col items-center gap-1">
+                              <img src={s.employee.avatar} alt={s.employee.name} className="h-10 w-10 rounded-full bg-slate-100" />
+                              <UtilizationGauge value={(s.employee as any).utilizationPercent ?? (s.employee as any).utilization ?? 0} size="sm" showLabel={false} />
                             </div>
-                            <div className="flex items-center gap-2">
-                              {i === 0 && (
-                                <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-semibold">
-                                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Best Match
-                                </span>
-                              )}
-                              <span className="text-sm font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-0.5 rounded-full">
-                                {s.matchPercent}%
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Match reasons */}
-                          <div className="space-y-1 mb-2">
-                            {s.matchReasons.slice(0, 2).map((r, ri) => (
-                              <div key={ri} className="flex items-start gap-1.5 text-xs text-slate-600">
-                                <TrendingUp className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
-                                {r}
+    
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between mb-1.5">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-800">{s.employee.name || (s.employee as any).employeeName}</p>
+                                  <p className="text-xs text-slate-500">{s.employee.designation} · {s.employee.department}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {!isUnavailable && i === 0 && s.matchPercent >= 80 && (
+                                    <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-semibold">
+                                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Best Match
+                                    </span>
+                                  )}
+                                  <span className={cn(
+                                    "text-sm font-bold px-2.5 py-0.5 rounded-full border",
+                                    isUnavailable ? "text-slate-500 bg-slate-50 border-slate-200" : "text-indigo-700 bg-indigo-50 border-indigo-100"
+                                  )}>
+                                    {s.matchPercent}%
+                                  </span>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-
-                          {/* Skill match / gap */}
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {s.skillMatch.slice(0, 4).map((sk) => (
-                              <SkillBadge key={sk} skill={sk} variant="default" />
-                            ))}
-                            {s.skillGap.slice(0, 2).map((sk) => (
-                              <SkillBadge key={sk} skill={sk} variant="gap" />
-                            ))}
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <StatusBadge status={s.employee.status} />
-                              {s.availableIn > 0 && (
-                                <span className="flex items-center gap-1 text-xs text-slate-500">
-                                  <Clock className="h-3 w-3" /> Available in {s.availableIn}d
-                                </span>
-                              )}
-                              {s.employee.certifications.length > 0 && (
-                                <span className="flex items-center gap-1 text-xs text-amber-600">
-                                  <Award className="h-3 w-3" /> {s.employee.certifications[0]}
-                                </span>
-                              )}
+    
+                              {/* Match reasons */}
+                              <div className="space-y-1 mb-2">
+                                {s.matchReasons.slice(0, 2).map((r, ri) => (
+                                  <div key={ri} className="flex items-start gap-1.5 text-xs text-slate-600">
+                                    <TrendingUp className={cn("h-3 w-3 flex-shrink-0 mt-0.5", isUnavailable ? "text-slate-400" : "text-emerald-500")} />
+                                    {r}
+                                  </div>
+                                ))}
+                              </div>
+    
+                              {/* Skill match / gap */}
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {s.skillMatch.slice(0, 4).map((sk) => (
+                                  <SkillBadge key={sk} skill={sk} variant="default" />
+                                ))}
+                                {s.skillGap.slice(0, 2).map((sk) => (
+                                  <SkillBadge key={sk} skill={sk} variant="gap" />
+                                ))}
+                              </div>
+    
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <StatusBadge status={s.employee.status} />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isUnavailable ? (
+                                    <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg font-medium">
+                                      Unavailable
+                                    </span>
+                                  ) : confirmed.has(s.employee.id) || (s.employee.status || "").toUpperCase() === "ALLOCATED" ? (
+                                    <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg font-medium">
+                                      <CheckCircle className="h-3.5 w-3.5" /> Allocated
+                                    </span>
+                                  ) : (
+                                    <motion.button
+                                      whileTap={{ scale: 0.97 }}
+                                      onClick={() => handleConfirm(s.employee.id)}
+                                      disabled={confirming === s.employee.id}
+                                      data-testid={`btn-confirm-${s.employee.id}`}
+                                      className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60"
+                                    >
+                                      {confirming === s.employee.id
+                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        : <CheckCircle className="h-3.5 w-3.5" />}
+                                      Allocate
+                                    </motion.button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {confirmed.has(s.employee.id) ? (
-                                <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg font-medium">
-                                  <CheckCircle className="h-3.5 w-3.5" /> Allocated
-                                </span>
-                              ) : (
-                                <motion.button
-                                  whileTap={{ scale: 0.97 }}
-                                  onClick={() => handleConfirm(s.employee.id)}
-                                  disabled={confirming === s.employee.id}
-                                  data-testid={`btn-confirm-${s.employee.id}`}
-                                  className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-60"
-                                >
-                                  {confirming === s.employee.id
-                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    : <CheckCircle className="h-3.5 w-3.5" />}
-                                  Allocate
-                                </motion.button>
-                              )}
-                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                        </motion.div>
+                      );
+                      
+                      return (
+                        <>
+                          {availableCandidates.length > 0 ? (
+                            availableCandidates.map((s, i) => renderCard(s, i, false))
+                          ) : (
+                            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center my-2">
+                              <p className="text-sm font-medium text-orange-800 mb-1">No available employees match these skills</p>
+                              <p className="text-xs text-orange-600">Consider adjusting required skills or checking back later.</p>
+                            </div>
+                          )}
+                          
+                          {unavailableCandidates.length > 0 && (
+                            <>
+                              <div className="mt-8 mb-3">
+                                <h2 className="text-sm font-semibold text-slate-700">Currently Unavailable</h2>
+                                <p className="text-xs text-slate-500">These employees match but are currently allocated to other projects.</p>
+                              </div>
+                              {unavailableCandidates.map((s, i) => renderCard(s, i, true))}
+                            </>
+                          )}
+                        </>
+                      );
+                  })()}
               </div>
             </div>
           )}

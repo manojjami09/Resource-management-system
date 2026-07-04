@@ -1,7 +1,7 @@
-import { allocations, allocationRequests } from "../data/allocations";
-import { employees } from "../data/employees";
 import { Allocation, AllocationRequest, SuggestedEmployee } from "../types";
 import { apiClient } from "../lib/apiClient";
+import { getEmployees, getEmployee, updateEmployee } from "./employeeService";
+import { getProjects, getProject } from "./projectService";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -20,65 +20,93 @@ export async function createAllocation(data: any): Promise<void> {
 }
 
 export async function getPendingRequests(): Promise<AllocationRequest[]> {
-  await delay(300);
-  return [...allocationRequests];
+  const projects = await getProjects();
+  const pendingProjects = projects.filter((p) => p.vacantPositions > 0);
+  return pendingProjects.map((p) => ({
+    id: p.id,
+    projectId: p.id,
+    projectName: p.projectName,
+    client: p.client,
+    requiredSkills: p.requiredSkills,
+    experienceNeeded: 1, // Defaulting to 1 year
+    priority: "high",
+    requestDate: p.startDate,
+    startDate: p.startDate,
+    role: "Developer",
+    description: "Requires resource allocation"
+  }));
 }
 
 export async function getSuggestedEmployees(requestId: string): Promise<SuggestedEmployee[]> {
-  await delay(500 + Math.random() * 300);
-  const request = allocationRequests.find((r) => r.id === requestId);
+  const request = await getProject(requestId);
   if (!request) return [];
 
-  const benchOrAvailable = employees.filter((e) => e.status === "bench" || e.status === "available" || e.utilization < 70);
+  const allEmployees = await getEmployees();
+  const candidates = allEmployees.filter((e) => {
+    const status = (e.status || "").toUpperCase();
+    return status === "BENCH" || status === "AVAILABLE" || status === "ALLOCATED";
+  });
 
-  const scored = benchOrAvailable.map((emp) => {
-    const matchingSkills = emp.skills.filter((s) => request.requiredSkills.includes(s));
-    const skillMatchPct = Math.round((matchingSkills.length / request.requiredSkills.length) * 100);
-    const expScore = Math.min(emp.experience / request.experienceNeeded, 1) * 100;
-    const availScore = emp.status === "available" ? 100 : emp.status === "bench" ? 90 : 70;
-    const overallMatch = Math.round((skillMatchPct * 0.5 + expScore * 0.3 + availScore * 0.2));
-    const cappedMatch = Math.min(99, Math.max(60, overallMatch));
+  const scored = candidates.map((emp) => {
+    const reqSkillsLower = request.requiredSkills.map(rs => rs.toLowerCase());
+    const matchingSkillsObjs = emp.skills.filter((s: any) => reqSkillsLower.includes(String(s.name || s).toLowerCase()));
+    const matchingSkills = matchingSkillsObjs.map((s: any) => s.name || s);
+    
+    if (matchingSkills.length === 0 && request.requiredSkills.length > 0) {
+      return { employee: emp, matchPercent: 0, matchReasons: ["No required skills match"], availableIn: 0, skillMatch: [], skillGap: request.requiredSkills };
+    }
+
+    const skillMatchPct = request.requiredSkills.length === 0 ? 100 : Math.round((matchingSkills.length / request.requiredSkills.length) * 100);
+    const cappedMatch = Math.min(100, Math.max(0, skillMatchPct));
 
     const reasons: string[] = [];
     if (matchingSkills.length > 0) reasons.push(`Strong ${matchingSkills.slice(0, 2).join(" & ")} experience`);
-    if (emp.experience >= request.experienceNeeded) reasons.push(`${emp.experience} years of experience meets the ${request.experienceNeeded}yr requirement`);
-    if (emp.status === "bench" || emp.status === "available") reasons.push("Available immediately with no project conflicts");
-    else reasons.push(`Currently at ${emp.utilization}% utilization — capacity available`);
-    if (emp.certifications.length > 0) reasons.push(`Holds ${emp.certifications[0]} certification`);
+    
+    const status = (emp.status || "").toUpperCase();
+    if (status === "BENCH" || status === "AVAILABLE") {
+      reasons.push("Available immediately with no project conflicts");
+    } else if (status === "ALLOCATED") {
+      const projName = emp.currentAllocations?.[0]?.projectName || "another project";
+      reasons.push(`Currently on: ${projName}`);
+    }
 
-    const availableIn = emp.status === "bench" || emp.status === "available" ? 0 : Math.floor(Math.random() * 14) + 1;
-    const skillGap = request.requiredSkills.filter((s) => !emp.skills.includes(s));
+    const availableIn = 0;
+    const skillGap = request.requiredSkills.filter((s) => !emp.skills.some((es: any) => String(es.name || es).toLowerCase() === s.toLowerCase()));
 
     return { employee: emp, matchPercent: cappedMatch, matchReasons: reasons, availableIn, skillMatch: matchingSkills, skillGap };
   });
 
-  return scored.sort((a, b) => b.matchPercent - a.matchPercent).slice(0, 5);
+  const qualified = scored.filter(s => s.matchPercent > 0);
+  
+  return qualified.sort((a, b) => {
+    const aStatus = (a.employee.status || "").toUpperCase();
+    const bStatus = (b.employee.status || "").toUpperCase();
+    const aAvail = (aStatus === "BENCH" || aStatus === "AVAILABLE") ? 1 : 0;
+    const bAvail = (bStatus === "BENCH" || bStatus === "AVAILABLE") ? 1 : 0;
+    
+    if (aAvail !== bAvail) return bAvail - aAvail;
+    return b.matchPercent - a.matchPercent;
+  }).slice(0, 15);
 }
 
 export async function confirmAllocation(requestId: string, employeeId: string): Promise<void> {
-  const request = allocationRequests.find((r) => r.id === requestId);
+  const request = await getProject(requestId);
   if (!request) return;
   
-  // Mapping to createAllocation
-  const payload = {
-    employeeId: parseInt(employeeId),
-    projectId: 1, // Mock project ID since request doesn't have it explicitly as a number, wait, let's just send what we have
-    percentage: 100, // Default to 100
-    startDate: request.startDate,
-    endDate: "2024-12-31" // mock
-  };
+  const employee = await getEmployee(employeeId);
+  if (!employee) return;
   
-  // In a real app we'd map this properly, but the prompt says:
-  // "createAllocation() → POST /api/allocations. Handle 400/error responses gracefully for overallocation scenarios."
-  // Wait, let's use the actual request project ID or just pass the employeeId and a default projectId if it's missing.
-  
+  const percentToAllocate = 100;
+
   await createAllocation({
-    employeeId: parseInt(employeeId) || Number(employeeId),
-    projectId: 1, // backend DevDataSeeder created project 1 and 2
-    allocationPercent: 100,
+    employeeId: employeeId,
+    projectId: requestId, 
+    allocationPercent: percentToAllocate,
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 6)).toISOString().split('T')[0]
   });
+  
+  await updateEmployee(employeeId, { ...employee, status: "ALLOCATED" });
 }
 
 export async function rejectRequest(requestId: string): Promise<void> {

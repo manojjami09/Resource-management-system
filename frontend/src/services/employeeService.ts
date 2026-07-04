@@ -1,25 +1,15 @@
-import { employees } from "../data/employees";
-import { allocations } from "../data/allocations";
-import { Employee, Allocation, EmployeeFilters, TimelineEvent } from "../types";
+import { Employee, Allocation, EmployeeFilters, TimelineEvent, AllocationStatus, SkillMatrixData } from "../types";
 import { apiClient } from "../lib/apiClient";
-
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function getEmployees(filters?: EmployeeFilters): Promise<Employee[]> {
   try {
     const params = filters ? { ...filters } : {};
     const response = await apiClient.get('/employees', { params });
-    return response.data.map((apiEmp: any) => {
-      const mock = employees.find(e => String(e.id) === String(apiEmp.id)) || employees[0];
-      return {
-        ...mock,
-        ...apiEmp,
-        id: String(apiEmp.id),
-        employeeName: apiEmp.name || mock.employeeName,
-        utilization: apiEmp.allocationPercent ?? mock.utilization ?? 0,
-        skills: apiEmp.skills || mock.skills || [],
-      };
-    });
+    return response.data.map((apiEmp: any) => ({
+      ...apiEmp,
+      employeeId: `EMP-${String(apiEmp.id).padStart(3, '0')}`,
+      avatar: `https://i.pravatar.cc/150?u=${apiEmp.id}`
+    }));
   } catch (error) {
     console.error("Failed to fetch employees", error);
     throw error;
@@ -30,14 +20,10 @@ export async function getEmployee(id: string): Promise<Employee | null> {
   try {
     const response = await apiClient.get(`/employees/${id}`);
     const apiEmp = response.data;
-    const mock = employees.find(e => String(e.id) === String(apiEmp.id)) || employees[0];
     return {
-      ...mock,
       ...apiEmp,
-      id: String(apiEmp.id),
-      employeeName: apiEmp.name || mock.employeeName,
-      utilization: apiEmp.allocationPercent ?? mock.utilization ?? 0,
-      skills: apiEmp.skills || mock.skills || [],
+      employeeId: `EMP-${String(apiEmp.id).padStart(3, '0')}`,
+      avatar: `https://i.pravatar.cc/150?u=${apiEmp.id}`
     };
   } catch (error) {
     console.error(`Failed to fetch employee ${id}`, error);
@@ -45,38 +31,101 @@ export async function getEmployee(id: string): Promise<Employee | null> {
   }
 }
 
+export async function getMe(): Promise<Employee | null> {
+  try {
+    const response = await apiClient.get(`/employees/me`);
+    const apiEmp = response.data;
+    return {
+      ...apiEmp,
+      employeeId: `EMP-${String(apiEmp.id).padStart(3, '0')}`,
+      avatar: `https://i.pravatar.cc/150?u=${apiEmp.id}`
+    };
+  } catch (error) {
+    console.error(`Failed to fetch my profile`, error);
+    return null;
+  }
+}
+
+export async function addEmployee(data: any): Promise<void> {
+  await apiClient.post('/employees', data);
+}
+
+export async function updateEmployee(id: string, data: any): Promise<void> {
+  await apiClient.put(`/employees/${id}`, data);
+}
+
+export async function deleteEmployee(id: string): Promise<void> {
+  await apiClient.delete(`/employees/${id}`);
+}
+
 export async function getEmployeeAllocations(employeeId: string): Promise<Allocation[]> {
-  await delay(200);
-  return allocations.filter((a) => a.employeeId === employeeId);
+  const response = await apiClient.get(`/employees/${employeeId}/allocations`);
+  return response.data.map((a: any) => ({
+    id: String(a.projectId) + "-" + a.startDate,
+    employeeId: employeeId,
+    employeeName: "", // usually not needed since we're viewing the employee's history
+    projectId: String(a.projectId),
+    projectName: a.projectName,
+    startDate: a.startDate,
+    endDate: a.endDate,
+    allocationPercent: a.allocationPercent,
+    role: "Developer",
+    status: (new Date(a.endDate) < new Date() ? "completed" : "active") as AllocationStatus,
+    billable: true
+  }));
 }
 
 export async function getEmployeeTimeline(employeeId: string): Promise<TimelineEvent[]> {
-  await delay(250);
-  const emp = employees.find((e) => e.id === employeeId);
+  const emp = await getEmployee(employeeId);
   if (!emp) return [];
-  return ([
-    { id: "t1", date: emp.joiningDate, title: "Joined TechCorp", description: `Started as ${emp.designation} in ${emp.department}`, type: "promotion" as const },
-    { id: "t2", date: "2023-04-01", title: "Allocated to Project", description: `Assigned to ${emp.currentProject || "internal project"}`, type: "allocation" as const },
-    { id: "t3", date: "2024-01-15", title: "Certification Earned", description: emp.certifications[0] || "Internal certification", type: "certification" as const },
-    { id: "t4", date: "2024-07-01", title: "Promotion", description: `Promoted to ${emp.designation}`, type: "promotion" as const },
-    { id: "t5", date: "2025-01-10", title: "New Allocation", description: `Allocated to ${emp.currentProject || "new project"}`, type: "allocation" as const },
-  ] as TimelineEvent[]).filter((t) => new Date(t.date) <= new Date());
+  const allocations = await getEmployeeAllocations(employeeId);
+  
+  const events: TimelineEvent[] = [];
+  events.push({ 
+    id: "join", 
+    date: emp.joiningDate, 
+    title: "Joined TechCorp", 
+    description: `Started as ${emp.designation} in ${emp.department}`, 
+    type: "promotion" 
+  });
+  
+  for (const alloc of allocations) {
+    events.push({
+      id: `alloc-${alloc.projectId}`,
+      date: alloc.startDate,
+      title: `Assigned to ${alloc.projectName}`,
+      description: `${alloc.allocationPercent}% allocation until ${alloc.endDate}`,
+      type: "allocation"
+    });
+  }
+  
+  return events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export async function getBenchEmployees(): Promise<Employee[]> {
-  await delay(250);
-  return employees.filter((e) => e.status === "bench" || e.status === "available");
+  const response = await apiClient.get('/employees/available');
+  return response.data.map((apiEmp: any) => ({
+    ...apiEmp,
+    employeeId: `EMP-${String(apiEmp.id).padStart(3, '0')}`,
+    avatar: `https://i.pravatar.cc/150?u=${apiEmp.id}`
+  }));
+}
+
+export async function getSkillMatrix(): Promise<SkillMatrixData> {
+  const response = await apiClient.get('/employees/skill-matrix');
+  return response.data;
 }
 
 export async function searchEmployees(query: string): Promise<Employee[]> {
-  await delay(150);
   const q = query.toLowerCase();
-  return employees.filter(
+  const allEmployees = await getEmployees();
+  return allEmployees.filter(
     (e) =>
-      e.employeeName.toLowerCase().includes(q) ||
+      e.name.toLowerCase().includes(q) ||
       e.employeeId.toLowerCase().includes(q) ||
-      e.skills.some((s) => s.toLowerCase().includes(q)) ||
+      e.skills.some((s) => s.name.toLowerCase().includes(q)) ||
       e.department.toLowerCase().includes(q) ||
       e.designation.toLowerCase().includes(q)
   ).slice(0, 10);
 }
+

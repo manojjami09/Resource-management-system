@@ -5,6 +5,7 @@ export interface User {
   id: number;
   email: string;
   role: string;
+  employeeId?: number;
 }
 
 interface AuthContextType {
@@ -43,9 +44,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiClient.post("/auth/login", { email, password });
-      const { token, id, email: userEmail, role } = response.data;
+      const { token, id, email: userEmail, role, employeeId } = response.data;
 
-      const userData: User = { id, email: userEmail, role };
+      const userData: User = { id, email: userEmail, role, employeeId };
 
       localStorage.setItem("rms_token", token);
       localStorage.setItem("rms_user", JSON.stringify(userData));

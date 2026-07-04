@@ -31,6 +31,13 @@ public class Project {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ProjectStatus status;
+    
+    private Integer teamSize;
+
+    @Column(name = "completion_percentage")
+    private Integer completionPercentage = 0;
+
+    private Double budget;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

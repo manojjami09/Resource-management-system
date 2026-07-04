@@ -5,6 +5,7 @@ import { AppLayout } from "./layouts/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
+import { EmployeeDetailPage } from "./pages/EmployeeDetailPage";
 import { ProjectsPage } from "./pages/ProjectsPage";
 import { AllocationPage } from "./pages/AllocationPage";
 import { SkillGapPage } from "./pages/SkillGapPage";
@@ -13,6 +14,36 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import NotFound from "./pages/not-found";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { useEffect } from "react";
+
+function ThemeInit() {
+  useEffect(() => {
+    const applyTheme = () => {
+      const theme = localStorage.getItem("theme") || "Light";
+      const root = document.documentElement;
+      if (theme === "Dark") {
+        root.classList.add("dark");
+      } else if (theme === "Light") {
+        root.classList.remove("dark");
+      } else if (theme === "System") {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+          root.classList.add("dark");
+        } else {
+          root.classList.remove("dark");
+        }
+      }
+    };
+    applyTheme();
+    window.addEventListener("theme-changed", applyTheme);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    mediaQuery.addEventListener("change", applyTheme);
+    return () => {
+      window.removeEventListener("theme-changed", applyTheme);
+      mediaQuery.removeEventListener("change", applyTheme);
+    };
+  }, []);
+  return null;
+}
 
 function AuthGuard({ children, onLogout }: { children: React.ReactNode; onLogout: () => void }) {
   const { user, isLoading } = useAuth();
@@ -45,6 +76,7 @@ function AppContent() {
           <Route path="/" component={() => <Redirect to="/dashboard" />} />
           <Route path="/dashboard" component={() => <AuthGuard onLogout={logout}><DashboardPage /></AuthGuard>} />
           <Route path="/employees" component={() => <AuthGuard onLogout={logout}><EmployeesPage /></AuthGuard>} />
+          <Route path="/employees/:id" component={() => <AuthGuard onLogout={logout}><EmployeeDetailPage /></AuthGuard>} />
           <Route path="/projects" component={() => <AuthGuard onLogout={logout}><ProjectsPage /></AuthGuard>} />
           <Route path="/allocation" component={() => <AuthGuard onLogout={logout}><AllocationPage /></AuthGuard>} />
           <Route path="/skill-gap" component={() => <AuthGuard onLogout={logout}><SkillGapPage /></AuthGuard>} />
@@ -62,6 +94,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <ThemeInit />
       <AppContent />
     </AuthProvider>
   );

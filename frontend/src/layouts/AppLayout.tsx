@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,9 +16,8 @@ const NAV_ITEMS = [
   { path: "/employees", label: "Employees", icon: Users },
   { path: "/projects", label: "Projects", icon: FolderKanban },
   { path: "/allocation", label: "Smart Allocation", icon: Sparkles },
-  { path: "/skill-gap", label: "Skill Gap", icon: BarChart3 },
+  { path: "/skill-gap", label: "Skill Gap Analytics", icon: BarChart3 },
   { path: "/reports", label: "Reports", icon: FileText },
-  { path: "/notifications", label: "Notifications", icon: Bell },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -28,25 +27,38 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children, onLogout }: AppLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(localStorage.getItem("sidebarMode") === "Collapsed");
   const [location, setLocation] = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
   const { user, role } = useAuth();
 
+  useEffect(() => {
+    const handleSidebarChange = () => {
+      setCollapsed(localStorage.getItem("sidebarMode") === "Collapsed");
+    };
+    window.addEventListener("sidebar-changed", handleSidebarChange);
+    return () => window.removeEventListener("sidebar-changed", handleSidebarChange);
+  }, []);
+
   const filteredNavItems = NAV_ITEMS.filter((item) => {
     if (role === "ROLE_EMPLOYEE") {
-      // Employees only see Dashboard, Notifications, Settings, and maybe their own Allocations
-      return ["Dashboard", "Notifications", "Settings", "Smart Allocation"].includes(item.label);
+      return ["Dashboard", "Employees", "Projects", "Settings"].includes(item.label);
     }
     return true;
+  }).map(item => {
+    if (role === "ROLE_EMPLOYEE") {
+      if (item.label === "Employees") return { ...item, label: "My Profile", icon: User };
+      if (item.label === "Projects") return { ...item, label: "My Projects" };
+    }
+    return item;
   });
 
   const currentPage = filteredNavItems.find((n) => n.path === location)?.label ?? "Dashboard";
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* Mobile overlay */}
       <AnimatePresence>
         {mobileOpen && (
@@ -63,12 +75,21 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
         animate={{ width: collapsed ? 72 : 240 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className={cn(
-          "fixed md:relative inset-y-0 left-0 z-50 flex flex-col bg-slate-900 text-slate-100 overflow-hidden flex-shrink-0 h-screen",
+          "fixed md:relative inset-y-0 left-0 z-50 flex flex-col bg-slate-900 text-slate-100 flex-shrink-0 h-screen",
           mobileOpen ? "flex" : "hidden md:flex",
         )}
       >
         {/* Logo */}
-        <div className={cn("flex items-center h-16 px-4 border-b border-slate-800", collapsed ? "justify-center" : "justify-between")}>
+        <div 
+          className={cn("flex items-center h-16 border-b border-slate-800", collapsed ? "justify-center cursor-pointer hover:bg-slate-800 transition-colors" : "px-4 justify-between")}
+          onClick={() => {
+            if (collapsed) {
+              setCollapsed(false);
+              localStorage.setItem("sidebarMode", "Expanded");
+              window.dispatchEvent(new Event("sidebar-changed"));
+            }
+          }}
+        >
           {!collapsed && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
@@ -82,13 +103,20 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
               <Sparkles className="h-4 w-4 text-white" />
             </div>
           )}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className={cn("hidden md:flex h-7 w-7 rounded-md hover:bg-slate-800 items-center justify-center transition-colors flex-shrink-0", collapsed && "mt-0")}
-            data-testid="sidebar-collapse-btn"
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4 text-slate-400" /> : <ChevronLeft className="h-4 w-4 text-slate-400" />}
-          </button>
+          {!collapsed && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setCollapsed(true);
+                localStorage.setItem("sidebarMode", "Collapsed");
+                window.dispatchEvent(new Event("sidebar-changed"));
+              }}
+              className="hidden md:flex h-7 w-7 rounded-md hover:bg-slate-800 items-center justify-center transition-colors flex-shrink-0"
+              data-testid="sidebar-collapse-btn"
+            >
+              <ChevronLeft className="h-4 w-4 text-slate-400" />
+            </button>
+          )}
         </div>
 
         {/* Nav */}
@@ -122,7 +150,7 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
         </nav>
 
         {/* User */}
-        <div className={cn("border-t border-slate-800 p-3", collapsed && "px-2")}>
+        <div className={cn("border-t border-slate-800 p-3 relative", collapsed && "px-2")}>
           <div
             className={cn("flex items-center gap-3 rounded-lg p-2 cursor-pointer hover:bg-slate-800 transition-colors", collapsed && "justify-center")}
             onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -134,43 +162,53 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
               <>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-slate-200 truncate">{user?.email?.split('@')[0] || "User"}</p>
-                  <p className="text-xs text-slate-500 truncate">{user?.email || ""}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email || ""}</p>
                   <p className="text-[10px] text-indigo-400 mt-0.5 truncate">{role?.replace('ROLE_', '') || ""}</p>
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
               </>
             )}
           </div>
-          {userMenuOpen && !collapsed && (
-            <div className="mt-1 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden">
-              <button
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-slate-400 hover:bg-slate-700 transition-colors"
-                onClick={() => setLocation("/settings")}
+          <AnimatePresence>
+            {userMenuOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={cn(
+                  "absolute bottom-[72px] rounded-lg bg-slate-800 border border-slate-700 overflow-hidden shadow-xl z-50",
+                  collapsed ? "left-4 w-48" : "left-4 right-4"
+                )}
               >
-                <User className="h-3.5 w-3.5" /> Profile & Settings
-              </button>
-              <button
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-400 hover:bg-slate-700 transition-colors"
-                onClick={onLogout}
-                data-testid="logout-btn"
-              >
-                <LogOut className="h-3.5 w-3.5" /> Sign Out
-              </button>
-            </div>
-          )}
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+                  onClick={() => { setLocation("/settings"); setUserMenuOpen(false); }}
+                >
+                  <User className="h-4 w-4" /> Profile & Settings
+                </button>
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-400 hover:bg-slate-700 hover:text-red-300 transition-colors border-t border-slate-700"
+                  onClick={onLogout}
+                  data-testid="logout-btn"
+                >
+                  <LogOut className="h-4 w-4" /> Sign Out
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </motion.aside>
 
       {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 gap-4 flex-shrink-0">
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 md:px-6 gap-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button className="md:hidden" onClick={() => setMobileOpen(true)}>
-              <Menu className="h-5 w-5 text-slate-500" />
+              <Menu className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             </button>
             <div>
-              <h1 className="text-sm font-semibold text-slate-900">{currentPage}</h1>
+              <h1 className="text-sm font-semibold text-slate-900 dark:text-white">{currentPage}</h1>
             </div>
           </div>
 
@@ -178,25 +216,19 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
             <button
               data-testid="search-trigger"
               onClick={() => setCmdOpen(true)}
-              className="hidden md:flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400 hover:bg-slate-100 transition-colors"
+              className="hidden md:flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-400 hover:bg-slate-100 transition-colors"
             >
               <Search className="h-3.5 w-3.5" />
               <span className="text-xs">Search...</span>
-              <kbd className="text-xs border border-slate-200 rounded px-1 bg-white">⌘K</kbd>
+              <kbd className="text-xs border border-slate-200 dark:border-slate-700 rounded px-1 bg-white dark:bg-slate-900">⌘K</kbd>
             </button>
             <button
               className="md:hidden"
               onClick={() => setCmdOpen(true)}
               data-testid="mobile-search-btn"
             >
-              <Search className="h-5 w-5 text-slate-500" />
+              <Search className="h-5 w-5 text-slate-500 dark:text-slate-400" />
             </button>
-            <Link href="/notifications">
-              <button className="relative h-9 w-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-50 transition-colors">
-                <Bell className="h-4 w-4 text-slate-500" />
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
-              </button>
-            </Link>
           </div>
         </header>
 
@@ -221,3 +253,4 @@ export function AppLayout({ children, onLogout }: AppLayoutProps) {
     </div>
   );
 }
+
