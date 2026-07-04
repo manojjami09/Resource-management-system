@@ -17,7 +17,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-public class DevDataSeeder {
+public class DevDataSeeder implements CommandLineRunner {
 
     @Autowired
     private UserRepository userRepository;
